@@ -1,4 +1,4 @@
-# Lösung von Matrikelnummer 2016424 (Python 3)
+# Ernesto Elsaesser - Matrikelnummer 2016424 - fuer Python 3
 
 import lib
 

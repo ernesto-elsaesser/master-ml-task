@@ -1,17 +1,17 @@
-# Lösung von Matrikelnummer 2016424 (Python 3)
+# Ernesto Elsaesser - Matrikelnummer 2016424 - fuer Python 3
 
 import lib
 
 train_filename = input("Pfad zu den Trainingsdaten: ")
 print("Lade Daten aus CSV-Datei ...")
-(train_in, train_out) = lib.parse(train_filename, True)
+(train_in, train_out) = lib.parse(train_filename)
 train_count = train_out.shape[0]
 print(str(train_count) + " Beispiele geladen.")
 
-sample_count = input("Anzahl zu nutzender Trainingsbeispiele: ")
-if sample_count < 1 || sample_count > train_count:
+sample_count = int(input("Anzahl zu nutzender Trainingsbeispiele: "))
+if sample_count < 1 or sample_count > train_count:
     sample_count = train_count
-print("Es wird mit " + train_count + " Beispielen trainiert.")
+print("Es wird mit " + str(train_count) + " Beispielen trainiert.")
 print("Trainiere neuronales Netz ...")
 net = lib.create()
 lib.train(net, train_in, train_out, 0, sample_count)
@@ -19,7 +19,7 @@ print("Netz erfolgreich trainiert.")
 
 test_filename = input("Pfad zu den Testdaten: ")
 print("Lade Daten aus CSV-Datei ...")
-(test_in, test_out) = lib.parse(test_filename, False)
+(test_in, test_out) = lib.parse(test_filename)
 test_count = test_out.shape[0]
 print(str(test_count) + " Beispiele geladen.")
 

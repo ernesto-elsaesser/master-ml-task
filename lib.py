@@ -1,9 +1,8 @@
-# Lösung von Matrikelnummer 2016424 (Python 3)
+# Ernesto Elsaesser - Matrikelnummer 2016424 - fuer Python 3
 
 import csv
-import json
 import numpy
-from numpy import array
+from numpy import array # required for eval in import function
 import backpropagation
 
 input_dim  = 6
