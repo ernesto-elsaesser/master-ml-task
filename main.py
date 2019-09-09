@@ -1,6 +1,8 @@
 # Lösung von Matrikelnummer 2016424
 
 import train
+import math # needed?
+
 
 # Eingabe einer Datei von Trainings- daten ein Konzept erlernt und anschließend bei Eingabe einer Datei von Testdaten eine Klassifikation vornimmt und ausgibt.
 

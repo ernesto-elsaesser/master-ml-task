@@ -1,13 +1,10 @@
-import math
 import numpy
 import backpropagation as net
 
 def train(trainIn, teach, number):
     
-    correctClassifications = 0
-
-    inputDim  = 21
-    hiddenDim = 50
+    inputDim  = 6
+    hiddenDim = 15
     outputDim = 3
 
     NN = net.feedForwardNetwork()
@@ -18,8 +15,9 @@ def train(trainIn, teach, number):
         
     print("\nStarting:\n")
 
-    learned = False
+    correctClassifications = 0
     iterations = 0
+    learned = False
 
     while (correctClassifications < number):
         
