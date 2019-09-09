@@ -45,14 +45,14 @@ def create():
     net.setLearningRate(0.3)
     return net
 
-def export(net, filename = "saved.net"):
+def export(net, filename = "trained.net"):
     with open(filename, 'w') as file:
         for name in property_names:
             value = getattr(net, name)
             line = repr(value).replace("\n", "")
             file.write(line + "\n")
 
-def import_(net, filename = "saved.net"):
+def import_(net, filename = "trained.net"):
     with open(filename, 'r') as file:
         for name in property_names:
             line = file.readline()
