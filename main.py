@@ -2,23 +2,35 @@
 
 import lib
 
-
-print("Lade Trainingsdaten ...")
-(train_in, train_out) = lib.load_csv('data_a_2_2016242.csv', True) # TODO prompt for name
+train_filename = input("Pfad zu den Trainingsdaten: ")
+print("Lade Daten aus CSV-Datei ...")
+(train_in, train_out) = lib.parse(train_filename, True)
 train_count = train_out.shape[0]
-print(str(train_count) + " Beispiele importiert.")
+print(str(train_count) + " Beispiele geladen.")
 
-print("Trainiere ...")
-net = lib.create_nn()
-lib.train(net, train_in, train_out, 100)
+sample_count = input("Anzahl zu nutzender Trainingsbeispiele: ")
+if sample_count < 1 || sample_count > train_count:
+    sample_count = train_count
+print("Es wird mit " + train_count + " Beispielen trainiert.")
+print("Trainiere neuronales Netz ...")
+net = lib.create()
+lib.train(net, train_in, train_out, 0, sample_count)
 print("Netz erfolgreich trainiert.")
 
-#print("Lade Testdaten ...")
-#(test_in, _) = lib.load_csv('data_a_2_2016242.csv', False) # TODO prompt for name
-#test_count = test_out.shape[0]
-#print(str(test_count) + " Beispiele importiert.")
+test_filename = input("Pfad zu den Testdaten: ")
+print("Lade Daten aus CSV-Datei ...")
+(test_in, test_out) = lib.parse(test_filename, False)
+test_count = test_out.shape[0]
+print(str(test_count) + " Beispiele geladen.")
 
-# Klassifikation Testdaten
-
-test_out = lib.classify(NN, [0,0.33,0.02,0.25,0,0])
-print(test_out)
+print("Klassifiziere Testdaten ...")
+(test_correct, test_error) = lib.test(net, test_in, test_out, 0, test_count)
+accuracy = test_correct / test_count
+print("{0}/{1} Beispiele richtig klassifiziert ({2:.0%})".format(test_correct, test_count, accuracy))
+answer = input("Klassifikationsergebnisse ausgeben (j/n)? ")
+if answer != "j":
+    exit()
+print("\n---- ERGEBNISSE ----\n")
+for i in range(0,test_count):
+    classification = lib.classify(net, test_in[i])
+    print(str(i) + ": " + classification)

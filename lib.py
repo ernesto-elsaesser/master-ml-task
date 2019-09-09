@@ -12,7 +12,7 @@ output_dim = 2
 epsilon = 0.01
 property_names = ["InputLayer", "HiddenLayer", "OutputLayer", "weightsToHidden", "weightsToOutput"]
 
-def parse(filename = "data_a_2_2016242.csv", include_output = True):
+def parse(filename = "data_a_2_2016242.csv"):
     file = open(filename, newline='')
     data = csv.reader(file, delimiter=';')
     next(data) # skip first line
@@ -30,12 +30,10 @@ def parse(filename = "data_a_2_2016242.csv", include_output = True):
         weight = normalize(int(row[3]), 20, 150)
         strength_sports = 1 if row[4] == 'Kraftsport' else 0
         endurance_sports = 1 if row[4] == 'Ausdauersport' else 0
+        underweight = 1 if row[5] == 'Untergewicht' else 0
+        overweight = 1 if row[5] == 'Uebergewicht' else 0
         in_data = numpy.append(in_data, [[gender, height, age, weight, strength_sports, endurance_sports]], axis=0)
-
-        if include_output:
-            underweight = 1 if row[5] == 'Untergewicht' else 0
-            overweight = 1 if row[5] == 'Uebergewicht' else 0
-            out_data = numpy.append(out_data, [[underweight, overweight]], axis=0)
+        out_data = numpy.append(out_data, [[underweight, overweight]], axis=0)
 
     return (in_data, out_data)
 
