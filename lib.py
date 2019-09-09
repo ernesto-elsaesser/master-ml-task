@@ -47,14 +47,14 @@ def create():
     return net
 
 def export(net, filename = "saved.net"):
-    with open(export_filename, 'w') as file:
+    with open(filename, 'w') as file:
         for name in property_names:
             value = getattr(net, name)
             line = repr(value).replace("\n", "")
             file.write(line + "\n")
 
 def import_(net, filename = "saved.net"):
-    with open(export_filename, 'r') as file:
+    with open(filename, 'r') as file:
         for name in property_names:
             line = file.readline()
             value = eval(line)
@@ -88,7 +88,7 @@ def train(net, input_data, expected_output, sample_count):
         print("Runde " + str(iterations) + " - Korrekte: " + str(correct) + " Fehler : " + str(total_error))
 
 def classify(net, example):
-    outputs = compute_outputs_for_inputs(net, input_data[i])
+    outputs = compute_outputs_for_inputs(net, example)
     return "Untergewicht {0:.0%} | Uebergewicht {1:.0%}".format(outputs[0], outputs[1])
 
 def compute_outputs_for_inputs(net,inputs):
@@ -99,5 +99,5 @@ def compute_outputs_for_inputs(net,inputs):
 def get_outputs(net):
     outputs = numpy.empty(output_dim)
     for i in range(0,output_dim):
-        outputs[i] net.getOutput(i)
+        outputs[i] = net.getOutput(i)
     return outputs
