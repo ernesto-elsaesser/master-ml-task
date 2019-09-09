@@ -9,6 +9,7 @@ import backpropagation
 input_dim  = 6
 hidden_dim = 15
 output_dim = 2
+epsilon = 0.01
 property_names = ["InputLayer", "HiddenLayer", "OutputLayer", "weightsToHidden", "weightsToOutput"]
 
 def parse(filename = "data_a_2_2016242.csv", include_output = True):
@@ -42,7 +43,7 @@ def create():
     net = backpropagation.feedForwardNetwork()
     net.configure(input_dim,hidden_dim,output_dim)
     net.init()
-    net.setEpsilon(0.01)
+    net.setEpsilon(epsilon)
     net.setLearningRate(0.3)
     return net
 
@@ -60,44 +61,63 @@ def import_(net, filename = "saved.net"):
             value = eval(line)
             setattr(net, name, value)
 
-def train(net, input_data, expected_output, sample_count):
-    iterations = 0
-    correct = 0
-    while (correct < sample_count):
-        iterations += 1
+def train(net, input_data, expected_output, sample_start, sample_end):
+    sample_range = range(sample_start, sample_end)
+    correct_samples = 0
+    round = 0
 
-        for i in range(0,sample_count):
+    while (correct_samples < len(sample_range)):
+        round += 1
+
+        for i in sample_range:
             outputs = compute_outputs_for_inputs(net, input_data[i])
             expected = expected_output[i]
             while True:
-                error = net.energy(expected, outputs, output_dim);
-                if (error < net.getEpsilon()):
+                error = get_error(net, expected, outputs)
+                if (error < epsilon):
                     break
                 net.backpropagate(expected)
                 outputs = get_outputs(net)
 
-        correct = 0
-        total_error = 0
-        for i in range(0,sample_count):
-            outputs = compute_outputs_for_inputs(net, input_data[i])
-            error = net.energy(expected_output[i],outputs,output_dim)
-            total_error += error
-            if (error < net.getEpsilon()):
-                correct += 1
+        (correct_samples, total_error) = test(net, input_data, expected_output, sample_start, sample_end)
+        print("Runde " + str(round) + " - Korrekte: " + str(correct_samples) + " Fehler : " + str(total_error))
 
-        print("Runde " + str(iterations) + " - Korrekte: " + str(correct) + " Fehler : " + str(total_error))
+def test(net, input_data, expected_output, sample_start, sample_end):
+    sample_range = range(sample_start, sample_end)
+    correct_samples = 0
+    total_error = 0
 
-def classify(net, example):
-    outputs = compute_outputs_for_inputs(net, example)
-    return "Untergewicht {0:.0%} | Uebergewicht {1:.0%}".format(outputs[0], outputs[1])
+    for i in sample_range:
+        outputs = compute_outputs_for_inputs(net, input_data[i])
+        error = get_error(net, expected_output[i], outputs)
+        total_error += error
+        if (error < epsilon):
+            correct_samples += 1
 
-def compute_outputs_for_inputs(net,inputs):
+    return (correct_samples, total_error)
+
+def classify(net, inputs):
+    outputs = compute_outputs_for_inputs(net, inputs)
+    error_under = get_error(net, [1,0], outputs)
+    error_over = get_error(net, [0,1], outputs)
+    if (error_under < epsilon):
+        return "Untergewicht"
+    if (error_over < epsilon):
+        return "Uebergewicht"
+    return "Normalgewicht"
+
+def compute_outputs_for_inputs(net, inputs):
     for i in range(0,input_dim):
         net.setInput(i,inputs[i])
     return get_outputs(net)
 
 def get_outputs(net):
+    net.apply()
     outputs = numpy.empty(output_dim)
     for i in range(0,output_dim):
         outputs[i] = net.getOutput(i)
     return outputs
+
+def get_error(net, expected, outputs):
+    error = net.energy(expected, outputs, output_dim)
+    return error
