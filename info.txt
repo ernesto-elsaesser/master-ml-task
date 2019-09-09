@@ -1,0 +1,3 @@
+Der Programmentwurf enthält erstellten Code und eine Kurzdokumentation zu diesem (Begründung zu Designentscheidung, Ergebnis und Ergebnisinterpretation). Die gestellte Aufgabe kann zu zweit bearbeitet werden. In der Abgabe vermerken Sie bitte die Matrikelnummern, da der Upload anonymisiert erfolgt. Abgabeschluss: 14.10.2019
+
+Ziel: Aus den gegebenen Daten ist ein Konzept zu erlernen. Trainieren Sie ein selbst entworfenes Modell mit den Trainingsdaten, prüfen Sie dieses anschließend. Bewerten und interpretieren Sie das Ergebnis.
