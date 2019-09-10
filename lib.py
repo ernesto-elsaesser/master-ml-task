@@ -58,7 +58,7 @@ def import_(net, filename = "trained.net"):
             value = eval(line)
             setattr(net, name, value)
 
-def train(net, input_data, expected_output, sample_start, sample_end):
+def train(net, input_data, target_data, sample_start, sample_end):
     sample_range = range(sample_start, sample_end)
     correct_samples = 0
     round = 0
@@ -68,25 +68,25 @@ def train(net, input_data, expected_output, sample_start, sample_end):
 
         for i in sample_range:
             outputs = compute_outputs_for_inputs(net, input_data[i])
-            expected = expected_output[i]
+            targets = target_data[i]
             while True:
-                error = get_error(net, expected, outputs)
+                error = get_error(net, targets, outputs)
                 if (error < epsilon):
                     break
-                net.backpropagate(expected)
+                net.backpropagate(targets)
                 outputs = get_outputs(net)
 
-        (correct_samples, total_error) = test(net, input_data, expected_output, sample_start, sample_end)
+        (correct_samples, total_error) = test(net, input_data, target_data, sample_start, sample_end)
         print("Runde " + str(round) + " - Korrekte: " + str(correct_samples) + " Fehler : " + str(total_error))
 
-def test(net, input_data, expected_output, sample_start, sample_end):
+def test(net, input_data, target_data, sample_start, sample_end):
     sample_range = range(sample_start, sample_end)
     correct_samples = 0
     total_error = 0
 
     for i in sample_range:
         outputs = compute_outputs_for_inputs(net, input_data[i])
-        error = get_error(net, expected_output[i], outputs)
+        error = get_error(net, target_data[i], outputs)
         total_error += error
         if (error < epsilon):
             correct_samples += 1
@@ -97,6 +97,17 @@ def classify(net, inputs):
     outputs = compute_outputs_for_inputs(net, inputs)
     error_under = get_error(net, [1,0], outputs)
     error_over = get_error(net, [0,1], outputs)
+    if (error_under < epsilon):
+        return "Untergewicht"
+    if (error_over < epsilon):
+        return "Uebergewicht"
+    return "Normalgewicht"
+
+
+def classify(x):
+    self.apply(x)
+    error_under = self.error([1,0])
+    error_over = self.error([0,1])
     if (error_under < epsilon):
         return "Untergewicht"
     if (error_over < epsilon):
@@ -115,6 +126,6 @@ def get_outputs(net):
         outputs[i] = net.getOutput(i)
     return outputs
 
-def get_error(net, expected, outputs):
-    error = net.energy(expected, outputs, output_dim)
+def get_error(net, targets, outputs):
+    error = net.energy(targets, outputs, output_dim)
     return error
