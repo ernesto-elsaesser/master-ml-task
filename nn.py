@@ -4,7 +4,7 @@ from numpy import array # required for deserialization
 
 class WeightClassifier:
 
-    def __init__(self, hidden_neurons = 15, epsilon = 0.025, learning_rate = 0.5):
+    def __init__(self, hidden_neurons = 15, epsilon = 0.05, learning_rate = 0.5):
         self.net = FeedForwardNet(6, hidden_neurons, 2, epsilon, learning_rate)
         self.sample_count = 0
         self.classes = ["Untergewicht", "Normalgewicht", "Uebergewicht"]
@@ -26,7 +26,7 @@ class WeightClassifier:
         self.targets = np.zeros((0,2))
 
         print("Lese CSV-Datei ...")
-        with open(filename, newline='') as file:n.
+        with open(filename, newline='') as file:
             data = csv.reader(file, delimiter=';')
             next(data) # skip first line
             for row in data:
@@ -92,22 +92,21 @@ class FeedForwardNet:
         weights_from_in = 2 * np.random.random((input_dim + 1, hidden_dim)) - 1
         weights_from_hidden = 2 * np.random.random((hidden_dim + 1, output_dim)) - 1
         self.weights_from = [weights_from_in, weights_from_hidden]
-        sigmoid = lambda x: 1/(1 + np.exp(-x))
-        sigmoid_deriv = lambda x: x * (1-x)
-        self.transfer_for = [sigmoid, sigmoid]
-        self.transfer_deriv_for = [sigmoid_deriv, sigmoid_deriv]
         self.epsilon = epsilon
         self.learning_rate = learning_rate
 
-    def set_transfer(self, layer, f, fd):
-        self.transfer_for[layer] = f
-        self.transfer_deriv_for[layer] = fd
+    @staticmethod
+    def sigmoid(x):
+        return 1/(1 + np.exp(-x))
+
+    @staticmethod
+    def sigmoid_deriv(x):
+        return x * (1-x)
 
     def propagate_layer(self, layer, levels):
         levels_ext = np.append(levels, 1) # treshold
-        t = self.transfer_for[layer]
         w = self.weights_from[layer]
-        return t(np.dot(levels_ext, w))
+        return self.sigmoid(np.dot(levels_ext, w))
 
     def propagate(self, x):
         h = self.propagate_layer(self.INPUT, x)
@@ -118,8 +117,7 @@ class FeedForwardNet:
         return np.sum(np.square(target - y)) / 2
 
     def adjust_weights(self, layer, levels_left, levels_right, error):
-        t = self.transfer_deriv_for[layer]
-        scaled_error = error * t(levels_right)
+        scaled_error = error * self.sigmoid_deriv(levels_right)
         delta = self.learning_rate * np.outer(levels_left, scaled_error)
         delta_ext = np.append(delta, np.zeros((1, error.shape[0])), 0)
         self.weights_from[layer] += delta_ext
