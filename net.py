@@ -1,5 +1,6 @@
 import csv
 import numpy as np
+from numpy import array # required for eval in import function
 
 class NeuralNetwork:
 
@@ -12,12 +13,10 @@ class NeuralNetwork:
         self.epsilon = epsilon
         self.learning_rate = learning_rate
 
-    @staticmethod
-    def transfer(x):   # sigmoid function
-        return (1/(1 + np.exp(-x)))
+    def transfer(x):
+        return (1/(1 + np.exp(-x))) # sigmoid
 
-    @staticmethod
-    def transfer_deriv(x):   # derived sigmoid function
+    def transfer_deriv(x):
         return x*(1-x)
     
     def feed(self, x, y, backpropagate):
@@ -42,29 +41,29 @@ class NeuralNetwork:
 
         return error_sum
 
-    def train(self, xs, ys, sample_range):
+    def train(self, data):
         round = 0
         wrong_classifications = True
         while (wrong_classifications):
             round += 1
 
-            for i in sample_range:
-                x = xs[i]
-                y = ys[i]
-                while self.feed(x, y, True) < self.epsilon:
+            for i in data.train_range:
+                x = data.xs[i]
+                y = data.ys[i]
+                while self.feed(x, y, True) > self.epsilon:
                     continue
 
-            (correct, total_error) = self.test(xs, ys, sample_range)
-            wrong_classifications = correct < len(sample_range)
+            (correct, total_error) = self.test(data)
+            wrong_classifications = correct < len(data.train_range)
 
             print("Runde " + str(round) + " - Korrekte: " + str(correct) + " Fehler : " + str(total_error))
 
-    def test(self, xs, ys, sample_range):
+    def test(self, data):
         correct = 0
         total_error = 0
 
-        for i in sample_range:
-            error = self.feed(xs[i], ys[i], False)
+        for i in data.test_range:
+            error = self.feed(data.xs[i], data.ys[i], False)
             total_error += error
             if (error < self.epsilon):
                 correct += 1
@@ -81,30 +80,32 @@ class NeuralNetwork:
             self.syn0 = eval(file.readline())
             self.syn1 = eval(file.readline())
 
-def create():
+class BMIData:
+
+    def __init__(filename = "data_a_2_2016242.csv", train_count = 100, test_count = 500):
+        self.train_range = range(0,train_count)
+        self.test_range = range(train_count,train_count + test_count)
+        self.xs = np.zeros((0,6))
+        self.ys = np.zeros((0,2))
+
+        with open(filename, newline='') as file:
+            data = csv.reader(file, delimiter=';')
+            next(data) # skip first line
+            for row in data:
+                gender = 1 if row[0] == 'w' else 0
+                height = normalize(int(row[1]), 140, 200)
+                age = normalize(int(row[2]), 18, 100)
+                weight = normalize(int(row[3]), 20, 150)
+                strength_sports = 1 if row[4] == 'Kraftsport' else 0
+                endurance_sports = 1 if row[4] == 'Ausdauersport' else 0
+                underweight = 1 if row[5] == 'Untergewicht' else 0
+                overweight = 1 if row[5] == 'Uebergewicht' else 0
+                self.xs = np.append(self.xs, [[gender, height, age, weight, strength_sports, endurance_sports]], 0)
+                self.ys = np.append(self.ys, [[underweight, overweight]], 0)
+
+    def normalize(value, upper, lower):
+        normalized = (value - lower) / (upper - lower)
+        return min(max(normalized, 0), 1)
+
+def make():
     return NeuralNetwork(6, 15, 2, 0.01, 0.3)
-
-def parse(filename = "data_a_2_2016242.csv"):
-    file = open(filename, newline='')
-    data = csv.reader(file, delimiter=';')
-    next(data) # skip first line
-    xs = np.zeros((0,6))
-    ys = np.zeros((0,2))
-
-    for row in data:
-        gender = 1 if row[0] == 'w' else 0
-        height = normalize(int(row[1]), 140, 200)
-        age = normalize(int(row[2]), 18, 100)
-        weight = normalize(int(row[3]), 20, 150)
-        strength_sports = 1 if row[4] == 'Kraftsport' else 0
-        endurance_sports = 1 if row[4] == 'Ausdauersport' else 0
-        underweight = 1 if row[5] == 'Untergewicht' else 0
-        overweight = 1 if row[5] == 'Uebergewicht' else 0
-        xs = np.append(xs, [[gender, height, age, weight, strength_sports, endurance_sports]], 0)
-        ys = np.append(ys, [[underweight, overweight]], 0)
-
-    return (xs, ys)
-
-def normalize(value, upper, lower):
-    normalized = (value - lower) / (upper - lower)
-    return min(max(normalized, 0), 1)
