@@ -2,9 +2,22 @@ import csv
 import numpy as np
 from numpy import array # required for eval in import function
 
-class BMIData:
+class WeightClassifier:
 
-    def __init__(self, filename = "data_a_2_2016242.csv"):
+    def __init__(self, epsilon = 0.01, learning_rate = 0.3):
+        self.net = FeedForwardNet(6, 15, 2, epsilon, learning_rate)
+
+    def load_weights(self):
+        with open("trained.net", 'r') as file:
+            raw = file.read()
+            self.net.deserialize(raw)
+
+    def save_weights(self):
+        with open("trained.net", 'w') as file:
+            raw = self.net.serialize()
+            file.write(raw)
+    
+    def load_data(self, filename = "data_a_2_2016242.csv"):
         self.xs = np.zeros((0,6))
         self.ys = np.zeros((0,2))
 
@@ -22,42 +35,27 @@ class BMIData:
                 overweight = 1 if row[5] == 'Uebergewicht' else 0
                 self.xs = np.append(self.xs, [[gender, height, age, weight, strength_sports, endurance_sports]], 0)
                 self.ys = np.append(self.ys, [[underweight, overweight]], 0)
-
+        
     def normalize(self, value, upper, lower):
         normalized = (value - lower) / (upper - lower)
         return min(max(normalized, 0), 1)
 
-class BMINet:
-
-    def __init__(self):
-        self.net = FeedForwardNet(6, 15, 2, 0.01, 0.3)
-
-    def load(self):
-        with open("trained.net", 'r') as file:
-            raw = file.read()
-            self.net.deserialize(raw)
-
-    def save(self):
-        with open("trained.net", 'w') as file:
-            raw = self.net.serialize()
-            file.write(raw)
-
-    def train(self, data, range_start, range_end):
+    def train(self, range_start, range_end):
         start = np.datetime64('now')
         train_range = range(range_start, range_end)
-        self.net.train(data.xs, data.ys, train_range)
+        self.net.train(self.xs, self.ys, train_range)
         end = np.datetime64('now')
         print("Trainingsdauer: " + str(end - start))
 
-    def test(self, data, range_start, range_end):
+    def test(self, range_start, range_end):
         test_range = range(range_start, range_end)
-        (correct, _) = self.net.test(data.xs, data.ys, test_range)
+        (correct, _) = self.net.test(self.xs, self.ys, test_range)
         count = len(test_range)
         accuracy = correct / count
         print("{0}/{1} korrekt ({2:.0%})".format(correct, count, accuracy))
 
-    def classify(self, data, index):
-        (_, out) = self.net.apply(data.xs[index])
+    def classify(self, index):
+        (_, out) = self.net.apply(self.xs[index])
         if (1 - out[0] < self.net.epsilon):
             return "Untergewicht"
         if (1 - out[1] < self.net.epsilon):
@@ -99,7 +97,7 @@ class FeedForwardNet:
         scaled_error = error * self.transfer_deriv(outputs)
         delta = self.learning_rate * np.outer(inputs, scaled_error)
         delta_ext = np.append(delta, [np.zeros(outputs.shape[0])], 0)
-        weights += hidden_to_out_delta_ext # TODO test
+        weights += delta_ext # TODO test
 
     def backpropagate(self, x, hidden, out, y):
         out_error = y - out
@@ -120,6 +118,8 @@ class FeedForwardNet:
                 y = ys[i]
                 (hidden, out) = self.apply(x)
                 overall_error = self.overall_error(out, y)
+                if round == 1 and i % 10 == 0:
+                    print("Initiale Backpropagation ({0} - {1})".format(i, i + 9))
                 while overall_error > self.epsilon:
                     self.backpropagate(x, hidden, out, y)
                     (hidden, out) = self.apply(x)
@@ -136,7 +136,7 @@ class FeedForwardNet:
 
         for i in sample_range:
             (_, out) = self.apply(xs[i])
-            overall_error = self.overall_error(out, y)
+            overall_error = self.overall_error(out, ys[i])
             if (overall_error < self.epsilon):
                 correct += 1
             total_error += overall_error
