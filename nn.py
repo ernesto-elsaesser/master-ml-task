@@ -6,21 +6,25 @@ class WeightClassifier:
 
     def __init__(self, epsilon = 0.01, learning_rate = 0.3):
         self.net = FeedForwardNet(6, 15, 2, epsilon, learning_rate)
+        self.sample_count = 0
 
-    def load_weights(self):
+    def load_weights(self, filename = "trained.net"):
         with open("trained.net", 'r') as file:
             raw = file.read()
             self.net.deserialize(raw)
+        print("Gewichte aus Datei " + filename + " geladen.")
 
-    def save_weights(self):
+    def save_weights(self, filename = "trained.net"):
         with open("trained.net", 'w') as file:
             raw = self.net.serialize()
             file.write(raw)
+        print("Gewichte in Datei " + filename + " gespeichert.")
     
     def load_data(self, filename = "data_a_2_2016242.csv"):
         self.xs = np.zeros((0,6))
         self.ys = np.zeros((0,2))
 
+        print("Lese CSV-Datei ...")
         with open(filename, newline='') as file:
             data = csv.reader(file, delimiter=';')
             next(data) # skip first lineexit
@@ -35,24 +39,28 @@ class WeightClassifier:
                 overweight = 1 if row[5] == 'Uebergewicht' else 0
                 self.xs = np.append(self.xs, [[gender, height, age, weight, strength_sports, endurance_sports]], 0)
                 self.ys = np.append(self.ys, [[underweight, overweight]], 0)
+
+        self.sample_count = self.ys.shape[0]
+        print(str(self.sample_count) + " Beispiele aus Datei " + filename + " ausgelesen.")
         
     def normalize(self, value, upper, lower):
         normalized = (value - lower) / (upper - lower)
         return min(max(normalized, 0), 1)
 
-    def train(self, range_start, range_end):
+    def train(self, from_index = 0, to_index = 10000):
         start = np.datetime64('now')
-        train_range = range(range_start, range_end)
+        train_range = range(max(from_index, 0), min(to_index, self.sample_count))
+        print("Trainiere mit " + str(len(train_range)) + " Beispielen ...")
         self.net.train(self.xs, self.ys, train_range)
         end = np.datetime64('now')
         print("Trainingsdauer: " + str(end - start))
 
-    def test(self, range_start, range_end):
-        test_range = range(range_start, range_end)
+    def test(self, from_index = 0, to_index = 10000):
+        test_range = range(max(from_index, 0), min(to_index, self.sample_count))
         (correct, _) = self.net.test(self.xs, self.ys, test_range)
         count = len(test_range)
         accuracy = correct / count
-        print("{0}/{1} korrekt ({2:.0%})".format(correct, count, accuracy))
+        print("Test-Ergebnis: {0}/{1} korrekt ({2:.0%})".format(correct, count, accuracy))
 
     def classify(self, index):
         (_, out) = self.net.apply(self.xs[index])
@@ -61,6 +69,11 @@ class WeightClassifier:
         if (1 - out[1] < self.net.epsilon):
             return "Uebergewicht"
         return "Normalgewicht"
+    
+    def classify_all(self):
+        print("Berechnete Klassen:")
+        for i in range(0, self.sample_count):
+            print(str(i) + ": " + self.classify(i))
 
 
 class FeedForwardNet:

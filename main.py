@@ -1,36 +1,22 @@
 # Ernesto Elsaesser - Matrikelnummer 2016424 - fuer Python 3
 
-import lib
+import nn
 
-train_filename = input("Pfad zu den Trainingsdaten: ")
-print("Lade Daten aus CSV-Datei ...")
-(train_in, train_out) = lib.parse(train_filename)
-train_count = train_out.shape[0]
-print(str(train_count) + " Beispiele geladen.")
+classifier = nn.WeightClassifier()
 
-sample_count = int(input("Anzahl zu nutzender Trainingsbeispiele: "))
-if sample_count < 1 or sample_count > train_count:
-    sample_count = train_count
-print("Es wird mit " + str(train_count) + " Beispielen trainiert.")
-print("Trainiere neuronales Netz ...")
-net = lib.create()
-lib.train(net, train_in, train_out, 0, sample_count)
-print("Netz erfolgreich trainiert.")
+answer = input("Vortrainierte Gewichte laden (j/n)? ")
+if answer == "j":
+    classifier.load_weights()
+else:
+    train_filename = input("Pfad zu den Trainingsdaten (CSV): ")
+    classifier.load_data(train_filename)
+    sample_count = int(input("Zahl zu nutzender Trainingsbeispiele: "))
+    classifier.train(to_index = sample_count)
 
-test_filename = input("Pfad zu den Testdaten: ")
-print("Lade Daten aus CSV-Datei ...")
-(test_in, test_out) = lib.parse(test_filename)
-test_count = test_out.shape[0]
-print(str(test_count) + " Beispiele geladen.")
+test_filename = input("Pfad zu den Testdaten (CSV): ")
+classifier.load_data(test_filename)
+classifier.test()
 
-print("Klassifiziere Testdaten ...")
-(test_correct, test_error) = lib.test(net, test_in, test_out, 0, test_count)
-accuracy = test_correct / test_count
-print("{0}/{1} Beispiele richtig klassifiziert ({2:.0%})".format(test_correct, test_count, accuracy))
-answer = input("Klassifikationsergebnisse ausgeben (j/n)? ")
-if answer != "j":
-    exit()
-print("\n---- ERGEBNISSE ----\n")
-for i in range(0,test_count):
-    classification = lib.classify(net, test_in[i])
-    print(str(i) + ": " + classification)
+answer = input("Klassen ausgeben (j/n)? ")
+if answer == "j":
+    classifier.classify_all()
