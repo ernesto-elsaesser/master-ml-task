@@ -13,10 +13,10 @@ class NeuralNetwork:
         self.epsilon = epsilon
         self.learning_rate = learning_rate
 
-    def transfer(x):
+    def transfer(self, x):
         return (1/(1 + np.exp(-x))) # sigmoid
 
-    def transfer_deriv(x):
+    def transfer_deriv(self, x):
         return x*(1-x)
     
     def feed(self, x, y, backpropagate):
@@ -41,29 +41,29 @@ class NeuralNetwork:
 
         return error_sum
 
-    def train(self, data):
+    def train(self, xs, ys, sample_range):
         round = 0
         wrong_classifications = True
         while (wrong_classifications):
             round += 1
 
-            for i in data.train_range:
-                x = data.xs[i]
-                y = data.ys[i]
+            for i in sample_range:
+                x = xs[i]
+                y = ys[i]
                 while self.feed(x, y, True) > self.epsilon:
                     continue
 
-            (correct, total_error) = self.test(data)
-            wrong_classifications = correct < len(data.train_range)
+            (correct, total_error) = self.test(xs, ys, sample_range)
+            wrong_classifications = correct < len(sample_range)
 
             print("Runde " + str(round) + " - Korrekte: " + str(correct) + " Fehler : " + str(total_error))
 
-    def test(self, data):
+    def test(self, xs, ys, sample_range):
         correct = 0
         total_error = 0
 
-        for i in data.test_range:
-            error = self.feed(data.xs[i], data.ys[i], False)
+        for i in sample_range:
+            error = self.feed(xs[i], ys[i], False)
             total_error += error
             if (error < self.epsilon):
                 correct += 1
@@ -82,20 +82,20 @@ class NeuralNetwork:
 
 class BMIData:
 
-    def __init__(filename = "data_a_2_2016242.csv", train_count = 100, test_count = 500):
-        self.train_range = range(0,train_count)
-        self.test_range = range(train_count,train_count + test_count)
+    def __init__(self, train_count = 100, test_count = 500, filename = "data_a_2_2016242.csv"):
+        self.train_range = range(0, train_count)
+        self.test_range = range(train_count, train_count + test_count)
         self.xs = np.zeros((0,6))
         self.ys = np.zeros((0,2))
 
         with open(filename, newline='') as file:
             data = csv.reader(file, delimiter=';')
-            next(data) # skip first line
+            next(data) # skip first lineexit
             for row in data:
                 gender = 1 if row[0] == 'w' else 0
-                height = normalize(int(row[1]), 140, 200)
-                age = normalize(int(row[2]), 18, 100)
-                weight = normalize(int(row[3]), 20, 150)
+                height = self.normalize(int(row[1]), 140, 200)
+                age = self.normalize(int(row[2]), 18, 100)
+                weight = self.normalize(int(row[3]), 20, 150)
                 strength_sports = 1 if row[4] == 'Kraftsport' else 0
                 endurance_sports = 1 if row[4] == 'Ausdauersport' else 0
                 underweight = 1 if row[5] == 'Untergewicht' else 0
@@ -103,9 +103,21 @@ class BMIData:
                 self.xs = np.append(self.xs, [[gender, height, age, weight, strength_sports, endurance_sports]], 0)
                 self.ys = np.append(self.ys, [[underweight, overweight]], 0)
 
-    def normalize(value, upper, lower):
+    def normalize(self, value, upper, lower):
         normalized = (value - lower) / (upper - lower)
         return min(max(normalized, 0), 1)
+
+    def train(self, net):
+        start = np.datetime64('now')
+        net.train(self.xs, self.ys, self.train_range)
+        end = np.datetime64('now')
+        print("Trainingsdauer: " + str(end - start))
+
+    def test(self, net):
+        (correct, _) = net.test(self.xs, self.ys, self.test_range)
+        count = len(self.test_range)
+        accuracy = correct / count
+        print("{0}/{1} korrekt ({2:.0%})".format(correct, count, accuracy))
 
 def make():
     return NeuralNetwork(6, 15, 2, 0.01, 0.3)
