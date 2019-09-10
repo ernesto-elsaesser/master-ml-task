@@ -4,7 +4,7 @@ from numpy import array # required for deserialization
 
 class WeightClassifier:
 
-    def __init__(self, hidden_neurons = 15, epsilon = 0.01, learning_rate = 0.3):
+    def __init__(self, hidden_neurons = 15, epsilon = 0.025, learning_rate = 0.5):
         self.net = FeedForwardNet(6, hidden_neurons, 2, epsilon, learning_rate)
         self.sample_count = 0
         self.classes = ["Untergewicht", "Normalgewicht", "Uebergewicht"]
@@ -26,7 +26,7 @@ class WeightClassifier:
         self.targets = np.zeros((0,2))
 
         print("Lese CSV-Datei ...")
-        with open(filename, newline='') as file:
+        with open(filename, newline='') as file:n.
             data = csv.reader(file, delimiter=';')
             next(data) # skip first line
             for row in data:
@@ -159,7 +159,7 @@ class FeedForwardNet:
                     pending -= 1
                 total_error += overall_error
 
-            print("Runde " + str(round) + " - Ausstehend: " + str(pending) + " Fehler : " + str(total_error))
+            print("Runde " + str(round) + " - Ausstehend: " + str(pending) + " Fehler: " + str(total_error))
 
     def serialize(self):
         return repr(self.weights_from)
