@@ -55,25 +55,27 @@ class WeightClassifier:
         end = np.datetime64('now')
         print("Trainingsdauer: " + str(end - start))
 
-    def test(self, from_index = 0, to_index = 10000):
+    def test(self, from_index = 0, to_index = 10000, print_classes = False):
         test_range = range(max(from_index, 0), min(to_index, self.sample_count))
-        (correct, _) = self.net.test(self.xs, self.ys, test_range)
-        count = len(test_range)
-        accuracy = correct / count
-        print("Test-Ergebnis: {0}/{1} korrekt ({2:.0%})".format(correct, count, accuracy))
+        (outputs, matches) = self.net.test(self.xs, self.ys, test_range)
 
-    def classify(self, index):
-        (_, out) = self.net.apply(self.xs[index])
-        if (1 - out[0] < self.net.epsilon):
+        if print_classes:
+            for i in test_range:
+                class_name = self.classify(outputs[i])
+                status = "falsch" if matches[i] == 0 else "richtig"
+                print("{0}: {1} [{2}]".format(i, class_name, status))
+
+        count = len(test_range)
+        correct = np.sum(matches)
+        accuracy = correct / count
+        print("Test-Ergebnis: {0}/{1} richtig ({2:.0%})".format(correct, count, accuracy))
+
+    def classify(self, y):
+        if (1 - y[0] < self.net.epsilon):
             return "Untergewicht"
-        if (1 - out[1] < self.net.epsilon):
+        if (1 - y[1] < self.net.epsilon):
             return "Uebergewicht"
         return "Normalgewicht"
-    
-    def classify_all(self):
-        print("Berechnete Klassen:")
-        for i in range(0, self.sample_count):
-            print(str(i) + ": " + self.classify(i))
 
 
 class FeedForwardNet:
@@ -93,14 +95,14 @@ class FeedForwardNet:
     def transfer_deriv(self, x):
         return x*(1-x)
 
-    def compute_layer(self, inputs, weights):
+    def propagate_layer(self, inputs, weights):
         inputs_ext = np.append(inputs, 1)
         outputs = self.transfer(np.dot(inputs_ext, weights))
         return outputs
 
-    def apply(self, x):
-        hidden_layer = self.compute_layer(x, self.in_to_hidden_weights)
-        out_layer = self.compute_layer(hidden_layer, self.hidden_to_out_weights)
+    def propagate(self, x):
+        hidden_layer = self.propagate_layer(x, self.in_to_hidden_weights)
+        out_layer = self.propagate_layer(hidden_layer, self.hidden_to_out_weights)
         return (hidden_layer, out_layer)
 
     def overall_error(self, outputs, y):
@@ -122,40 +124,46 @@ class FeedForwardNet:
 
     def train(self, xs, ys, sample_range):
         round = 0
-        learned_all = False
-        while (not learned_all):
+        pending = 1
+        while (pending > 0):
             round += 1
 
             for i in sample_range:
                 x = xs[i]
                 y = ys[i]
-                (hidden, out) = self.apply(x)
+                (hidden, out) = self.propagate(x)
                 overall_error = self.overall_error(out, y)
                 if round == 1 and i % 10 == 0:
                     print("Initiale Backpropagation ({0} - {1})".format(i, i + 9))
                 while overall_error > self.epsilon:
                     self.backpropagate(x, hidden, out, y)
-                    (hidden, out) = self.apply(x)
+                    (hidden, out) = self.propagate(x)
                     overall_error = self.overall_error(out, y)
 
-            (correct, total_error) = self.test(xs, ys, sample_range)
-            learned_all = correct == len(sample_range)
+            pending = len(sample_range)
+            total_error = 0
+            for i in sample_range:
+                (_, out) = self.propagate(xs[i])
+                overall_error = self.overall_error(out, ys[i])
+                if (overall_error < self.epsilon):
+                    pending -= 1
+                total_error += overall_error
 
-            print("Runde " + str(round) + " - Korrekte: " + str(correct) + " Fehler : " + str(total_error))
-
+            print("Runde " + str(round) + " - Falsche: " + str(pending) + " Fehler : " + str(total_error))
+    
     def test(self, xs, ys, sample_range):
-        correct = 0
-        total_error = 0
+        count = len(sample_range)
+        outs = np.zeros((count, self.out_count))
+        matches = np.zeros((count, 1), dtype=int)
 
         for i in sample_range:
-            (_, out) = self.apply(xs[i])
-            overall_error = self.overall_error(out, ys[i])
-            if (overall_error < self.epsilon):
-                correct += 1
-            total_error += overall_error
+            (_, out) = self.propagate(xs[i])
+            outs[i] = out
+            if (self.overall_error(out, ys[i]) < self.epsilon):
+                matches[i] = 1
 
-        return (correct, total_error)
-    
+        return (outs, matches)
+
     def serialize(self):
         array = [self.in_to_hidden_weights, self.hidden_to_out_weights]
         return repr(array)

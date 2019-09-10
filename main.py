@@ -15,8 +15,6 @@ else:
 
 test_filename = input("Pfad zu den Testdaten (CSV): ")
 classifier.load_data(test_filename)
-classifier.test()
-
 answer = input("Klassen ausgeben (j/n)? ")
-if answer == "j":
-    classifier.classify_all()
+print_classes = answer == "j"
+classifier.test(print_classes = print_classes)
