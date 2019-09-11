@@ -73,32 +73,32 @@ def load_data(filename = "data_a_2_2016242.csv"):
     return (p,n)
 
 def star(pe, nes):
+    pex = pe.split(":")
     g = ["*:*:*:*:*"]
     for ne in nes:
-        g = step(g, pe, ne)
+        g = step(g, pe, pex, ne)
         if len(g) == 0:
             print("COLLAPSED for " + str(ne))
             break
     return g
 
-def step(g, pe, ne):
+def step(g, pe, pex, ne):
     nex = ne.split(":")
-    pex = pe.split(":")
     ng = set(g)
     for h in g:
         hx = h.split(":")
         if contains(hx, nex):
             ng.remove(h)
-            replacements = update(ng, hx, nex, pe, pex)
-            for rule in replacements:
+            nhs = update(ng, h, hx, nex, pe, pex)
+            for nh in nhs:
                 ng.add(nh)
 
-    # TODO: remove redundant rules (the more general ones)
+    # TODO: remove redundant rules (keep more specific ones)
 
     return list(ng)
 
-def update(g, hx, nex, pe, pex):
-    replacements = []
+def update(g, h, hx, nex, pe, pex):
+    nhs = []
 
     # find most general specializations
     for i in range(0,5):
@@ -112,14 +112,22 @@ def update(g, hx, nex, pe, pex):
         if pa == na:
             continue
 
-        nhx = hx
+        nhx = h.split(":")
         nhx[i] = pa
         nh = ":".join(nhx)
 
         if nh != pe:
-           replacements.append(nh) 
+           nhs.append(nh) 
 
-    return replacements
+    return nhs
+
+def any_contains(g, e):
+    pex = pe.split(":")
+    for h in g:
+        hx = h.split(":")
+        if contains(hx, pex):
+            return True
+    return False
 
 def contains(hx, ex):
     for j in range(0, 5):
@@ -127,6 +135,7 @@ def contains(hx, ex):
             continue
         if hx[j] != ex[j]:
             return False
+    return True
 
 def has_more_special(g, nhx):
 
