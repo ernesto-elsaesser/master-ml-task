@@ -9,7 +9,7 @@ weights = ["<150", "150-159", "160-169", "170-179", "180-189", ">190"]
 sports = ["keinSport", "Kraftsport", "Ausdauersport"]
 options = [genders, heights, ages, weights, sports]
 
-def load_data(filename = "data_a_2_2016242.csv"):
+def load(filename = "data_a_2_2016242.csv"):
     p = []
     n = []
 
@@ -89,15 +89,40 @@ def step(g, pe, pex, ne):
         hx = h.split(":")
         if contains(hx, nex):
             ng.remove(h)
-            nhs = update(ng, h, hx, nex, pe, pex)
+            nhs = update(h, hx, nex, pe, pex)
             for nh in nhs:
                 ng.add(nh)
 
-    # TODO: remove redundant rules (keep more specific ones)
-
     return list(ng)
 
-def update(g, h, hx, nex, pe, pex):
+def redundancies(g):
+    hs = set()
+
+    for h1 in g:
+        h1x = h1.split(":")
+        redundant = False
+        for h2 in g:
+            if h1 == h2:
+                continue
+            h2x = h2.split(":")
+            for i in range(0, 5):
+                if h1x[i] == h2x[i]:
+                    continue
+                if h1x[i] == "*" and h2x[i] != "*":
+                    redundant = True
+                else:
+                    redundant = False
+                    break
+
+            if redundant:
+                break
+        
+        if redundant:
+            hs.add(h1)
+
+    return hs
+
+def update(h, hx, nex, pe, pex):
     nhs = []
 
     # find most general specializations
@@ -117,7 +142,7 @@ def update(g, h, hx, nex, pe, pex):
         nh = ":".join(nhx)
 
         if nh != pe:
-           nhs.append(nh) 
+           nhs.append(nh)
 
     return nhs
 
