@@ -122,12 +122,20 @@ def update(g, h, hx, nex, pe, pex):
     return nhs
 
 def any_contains(g, e):
-    pex = pe.split(":")
+    ex = e.split(":")
     for h in g:
         hx = h.split(":")
-        if contains(hx, pex):
+        if contains(hx, ex):
             return True
     return False
+
+def all_contain(g, e):
+    ex = e.split(":")
+    for h in g:
+        hx = h.split(":")
+        if not contains(hx, ex):
+            return False
+    return True
 
 def contains(hx, ex):
     for j in range(0, 5):
