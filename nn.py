@@ -1,4 +1,5 @@
 import csv
+import random
 import numpy as np
 from numpy import array # required for deserialization
 
@@ -131,24 +132,26 @@ class FeedForwardNet:
         self.adjust_weights(self.INPUT, x, h, hidden_error)
 
     def train(self, xs, targets, sample_range):
+        count = len(sample_range)
         round = 0
         pending = 1
         while (pending > 0):
             round += 1
+
+            if round % 10:
+                sample_range = random.sample(list(sample_range), count)
 
             for i in sample_range:
                 x = xs[i]
                 target = targets[i]
                 (h, y) = self.propagate(x)
                 overall_error = self.overall_error(y, target)
-                if round == 1 and i % 10 == 0:
-                    print("Initiale Backpropagation ({0} - {1})".format(i, i + 9))
                 while overall_error > self.epsilon:
                     self.backpropagate(x, h, y, target)
                     (h, y) = self.propagate(x)
                     overall_error = self.overall_error(y, target)
 
-            pending = len(sample_range)
+            pending = count
             total_error = 0
             for i in sample_range:
                 (_, y) = self.propagate(xs[i])
