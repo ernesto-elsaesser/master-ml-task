@@ -72,13 +72,174 @@ def load(filename = "data_a_2_2016242.csv"):
 
     return (p,n)
 
+def classic(pes, nes):
+    g = set()
+    g.add("*:*:*:*:*")
+    s = set()
+    first = True
+
+    print("POSITIVES")
+
+    for pe in pes:
+        if first:
+            s.add(pe)
+            first = False
+            continue
+
+        pex = pe.split(":")
+
+        ng = set(g)
+        for h in g:
+            hx = h.split(":")
+            if not contains(hx, pex):
+                print("GREM " + h)
+                ng.remove(h)
+        g = ng
+
+        if len(g) == 0:
+            print("G COLLAPSED for " + str(pe))
+            return (s,g)
+
+        ns = set(s)
+        for h in s:
+            hx = h.split(":")
+            if not contains(hx, pex):
+                print("SREM " + h)
+                ns.remove(h)
+                nh = most_special_general(h, hx, pex)
+                add = True
+                for gh in g:
+                    if more_general(nh, gh):
+                        add = False
+                        break
+                if add:
+                    print("SADD " + nh)
+                    ns.add(nh)
+
+        # remove more special duplicates
+        toremove = set()
+        for h1 in ns:
+            redundant = False
+            for h2 in ns:
+                if h1 == h2:
+                    continue
+                if more_general(h2, h1):
+                    redundant = True
+                    break
+            
+            if redundant:
+                print("SRED " + h1)
+                toremove.add(h1)
+                
+        s = ns.difference(toremove)
+
+        if len(s) == 0:
+            print("S COLLAPSED for " + str(pe))
+            return (s,g)
+        
+        if g == s:
+            print("CONVERGED")
+            return (s,g)
+
+    print("NEGATIVES")
+
+    for ne in nes:
+
+        nex = ne.split(":")
+
+        ns = set(s)
+        for h in s:
+            hx = h.split(":")
+            if contains(hx, nex):
+                print("SREM " + h)
+                ns.remove(h)
+        s = ns
+
+        if len(s) == 0:
+            print("S COLLAPSED for " + str(ne))
+            return (s,g)
+
+        ng = set(g)
+        for h in g:
+            hx = h.split(":")
+            if contains(hx, nex):
+                print("GREM " + h)
+                ng.remove(h)
+                nhs = most_general_special(h, hx, nex, pes)
+                for nh in nhs:
+                    add = True
+                    for sh in s:
+                        if more_general(sh, nh):
+                            add = False
+                            break
+                    if add:
+                        print("GADD " + nh)
+                        ng.add(nh)
+
+        # remove more general duplicates
+        toremove = set()
+        for h1 in ng:
+            redundant = False
+            for h2 in ng:
+                if h1 == h2:
+                    continue
+                if more_general(h1, h2):
+                    redundant = True
+                    break
+            
+            if redundant:
+                print("GRED " + h1)
+                toremove.add(h1)
+                
+        g = ng.difference(toremove)
+
+        if len(g) == 0:
+            print("G COLLAPSED for " + str(ne))
+            return (s,g)
+
+        if g == s:
+            print("CONVERGED")
+            return (s,g)
+
+    return (s,g)
+
+def most_special_general(h, hx, pex):
+
+    nhx = h.split(":")
+
+    for i in range(0,5):
+        ha = hx[i]
+        pa = pex[i]
+
+        if ha == "*":
+            continue
+
+        if ha == pa:
+            continue
+
+        nhx[i] = "*"
+
+    nh = ":".join(nhx)
+    return nh
+
+def most_general_special(h, hx, nex, s):
+    # TODO
+    return update()
+
+def merged_stars(pes, nes):
+    g = set()
+    for pe in pes:
+        ng = star(pe, nes)
+        g = g.union(ng)
+    return g
+
 def star(pe, nes):
     pex = pe.split(":")
-    g = ["*:*:*:*:*"]
+    g = set()
+    g.add("*:*:*:*:*")
     for ne in nes:
         g = step(g, pe, pex, ne)
         if len(g) == 0:
-            print("COLLAPSED for " + str(ne))
             break
     return g
 
@@ -93,34 +254,45 @@ def step(g, pe, pex, ne):
             for nh in nhs:
                 ng.add(nh)
 
-    return list(ng)
+    # remove more general duplicates
+    toremove = redundancies(ng)
+    ng = ng.difference(toremove)
+
+    return ng
 
 def redundancies(g):
     hs = set()
 
     for h1 in g:
-        h1x = h1.split(":")
         redundant = False
         for h2 in g:
             if h1 == h2:
                 continue
-            h2x = h2.split(":")
-            for i in range(0, 5):
-                if h1x[i] == h2x[i]:
-                    continue
-                if h1x[i] == "*" and h2x[i] != "*":
-                    redundant = True
-                else:
-                    redundant = False
-                    break
-
-            if redundant:
+            if more_general(h1, h2):
+                redundant = True
                 break
         
         if redundant:
             hs.add(h1)
 
     return hs
+
+def more_general(h1, h2):
+    h1x = h1.split(":")
+    h2x = h2.split(":")
+
+    more_general = False
+    for i in range(0, 5):
+        if h1x[i] == h2x[i]:
+            continue
+        if h1x[i] == "*" and h2x[i] != "*":
+            more_general = True
+        else:
+            more_general = False
+            break
+
+    return more_general
+
 
 def update(h, hx, nex, pe, pex):
     nhs = []
