@@ -1,22 +1,18 @@
-import csv
-import random
-import numpy as np
+# TM40507 Pruefungsleistung - Matrikelnummer 2016424
+# (c) Ernesto Elsaesser
 
-from sklearn.neural_network import MLPClassifier
-from sklearn.metrics import classification_report
+import csv
+import numpy as np
 
 class WeightClassifier:
 
-    def __init__(self, hidden_neurons = 6, output_neurons = 2, epsilon = 0.2, learning_rate = 0.3):
-        self.output_neurons = max(min(output_neurons, 3), 1)
-        self.hidden_neurons = hidden_neurons
-        self.net = MultiplayerPerceptron(6, hidden_neurons, output_neurons, epsilon, learning_rate)
-        self.sample_count = 0
+    def __init__(self, hidden_neurons = 6, epsilon = 0.1, learning_rate = 0.3):
+        self.net = MultiplayerPerceptron(6, hidden_neurons, 2, epsilon, learning_rate)
         self.classes = ["Untergewicht", "Normalgewicht", "Uebergewicht"]
     
     def load_data(self, filename = "data_a_2_2016242.csv"):
         self.xs = np.zeros((0,6))
-        self.targets = np.zeros((0,self.output_neurons))
+        self.targets = np.zeros((0,2))
         self.raw = []
 
         print("Lese CSV-Datei ...")
@@ -30,87 +26,53 @@ class WeightClassifier:
                 weight = self.normalize(int(row[3]), 20, 150)
                 strength_sports = 1 if row[4] == "Kraftsport" else 0
                 endurance_sports = 1 if row[4] == "Ausdauersport" else 0
+                underweight = 1 if row[5] == self.classes[0] else 0
+                overweight = 1 if row[5] == self.classes[2] else 0
                 self.xs = np.append(self.xs, [[gender, height, age, weight, strength_sports, endurance_sports]], 0)
-
-                if self.output_neurons == 3:
-                    underweight = 1 if row[5] == self.classes[0] else 0
-                    normal = 1 if row[5] == self.classes[1] else 0
-                    overweight = 1 if row[5] == self.classes[2] else 0
-                    self.targets = np.append(self.targets, [[underweight, normal, overweight]], 0)
-
-                if self.output_neurons == 2:
-                    underweight = 1 if row[5] == self.classes[0] else 0
-                    overweight = 1 if row[5] == self.classes[2] else 0
-                    self.targets = np.append(self.targets, [[underweight, overweight]], 0)
-                
+                self.targets = np.append(self.targets, [[underweight, overweight]], 0)
                 self.raw.append(" | ".join(row))
 
-        self.sample_count = self.targets.shape[0]
-        print(str(self.sample_count) + " Beispiele aus Datei " + filename + " ausgelesen.")
+        print(str(len(self.raw)) + " Beispiele aus Datei " + filename + " ausgelesen.")
         
     def normalize(self, value, upper, lower):
         normalized = (value - lower) / (upper - lower)
         return min(max(normalized, 0), 1)
 
     def train(self, from_index = 0, to_index = 10000):
-        start = np.datetime64('now')
-        train_range = range(max(from_index, 0), min(to_index, self.sample_count))
-        print("Trainiere mit " + str(len(train_range)) + " Beispielen ...")
-        self.net.train(self.xs, self.targets, train_range, max_iterations = 12)
-        end = np.datetime64('now')
-        print("Trainingsdauer: " + str(end - start))
+        train_xs = self.xs[from_index:to_index]
+        train_targets = self.targets[from_index:to_index]
+        print("Trainiere mit " + str(train_xs.shape[0]) + " Beispielen ...")
+        before = np.datetime64('now')
+        self.net.train(train_xs, train_targets, max_iterations = 15)
+        after = np.datetime64('now')
+        print("Trainingsdauer: " + str(after - before))
 
-    def test(self, from_index = 0, to_index = 10000, print_all = False, print_errors = False):
-        test_range = range(max(from_index, 0), min(to_index, self.sample_count))
-        count = len(test_range)
+    def test(self, from_index = 0, to_index = 10000, verbose = False):
+        train_xs = self.xs[from_index:to_index]
+        train_targets = self.targets[from_index:to_index]
+        count = train_xs.shape[0]
         correct_count = 0
 
-        for i in test_range:
+        for i in range(count):
             expected_class = self.classify(self.targets[i])
             (_, y) = self.net.propagate(self.xs[i])
             predicted_class = self.classify(y)
             correct = expected_class == predicted_class
             if correct:
                 correct_count += 1
-            if print_all or (print_errors and not correct):
-                print(str(i) + ": " + self.raw[i] +  " -> " + self.classes[predicted_class] 
-                    + (" [richtig]" if correct else " [falsch]"))
+            if verbose:
+                print(str(i+1) + ": " + self.raw[i] +  (" --- " if correct else " -X- ") 
+                      + self.classes[predicted_class] + " " + str(y))
 
         accuracy = correct_count / count
         print("Test-Ergebnis: {0}/{1} richtig ({2:.0%})".format(correct_count, count, accuracy))
 
     def classify(self, y):
-        if self.output_neurons == 3:
-                return np.argmax(y)
-
-        if self.output_neurons == 2:
-            if y[0] > (1/2):
-                return 0 if y[0] > y[1] else 2
-            if y[1] > (1/2):
-                return 2 if y[1] > y[0] else 0
+            if y[0] > 0.5:
+                return 0
+            if y[1] > 0.5:
+                return 2
             return 1
-
-    def sk(self, max_iter = 5000, activation = "relu", hidden_layer_sizes = 6):
-        # https://scikit-learn.org/stable/modules/neural_networks_supervised.html
-        mlp = MLPClassifier(hidden_layer_sizes=hidden_layer_sizes, activation=activation, solver='sgd', max_iter=max_iter)
-        mlp.fit(self.xs[0:7000], self.targets[0:7000])
-        targets_predicted = mlp.predict(self.xs[7000:10000])
-        print(classification_report(self.targets[7000:10000], targets_predicted))
-
-        correct_count = 0
-        for i in range(7000,10000):
-            expected_class = self.classify(self.targets[i])
-            pred = mlp.predict([self.xs[i]])
-            predicted_class = self.classify(pred[0])
-            correct = expected_class == predicted_class
-            if correct:
-                correct_count += 1
-            elif i < 8000:
-                print(str(i) + ": " + self.raw[i] +  " -> " + str(pred[0]))
-
-
-        accuracy = correct_count / 3000
-        print("Test-Ergebnis: {0}/3000 richtig ({1:.0%})".format(correct_count, accuracy))
 
 class MultiplayerPerceptron:
 
@@ -126,17 +88,17 @@ class MultiplayerPerceptron:
         self.learning_rate = learning_rate
 
     @staticmethod
-    def sigmoid(x):
-        return 1/(1 + np.exp(-x))
+    def transfer(x):
+        return 1/(1 + np.exp(-x)) # sigmoid
 
     @staticmethod
-    def sigmoid_deriv(x):
-        return x * (1-x)
+    def transfer_derived(x):
+        return x * (1-x) # sigmoid dervied
 
     def propagate_layer(self, layer, levels):
         levels_ext = np.append(levels, 1) # treshold
         w = self.weights_from[layer]
-        return self.sigmoid(np.dot(levels_ext, w))
+        return self.transfer(np.dot(levels_ext, w))
 
     def propagate(self, x):
         h = self.propagate_layer(self.INPUT, x)
@@ -147,7 +109,7 @@ class MultiplayerPerceptron:
         return np.sum(np.square(target - y)) / 2
 
     def adjust_weights(self, layer, levels_left, levels_right, error):
-        scaled_error = error * self.sigmoid_deriv(levels_right)
+        scaled_error = error * self.transfer_derived(levels_right)
         delta = self.learning_rate * np.outer(levels_left, scaled_error)
         delta_ext = np.append(delta, np.zeros((1, error.shape[0])), 0)
         self.weights_from[layer] += delta_ext
@@ -160,14 +122,16 @@ class MultiplayerPerceptron:
         hidden_error = scaled_error.dot(weights_from_hidden[:-1].T)
         self.adjust_weights(self.INPUT, x, h, hidden_error)
 
-    def train(self, xs, targets, sample_range, max_iterations):
+    def train(self, xs, targets, max_iterations):
+        count = xs.shape[0]
         iteration = 0
         pending = 1
         while pending > 0 and iteration < max_iterations:
             iteration += 1
             pending = 0
             total_error = 0
-            for i in sample_range:
+            
+            for i in range(count):
                 x = xs[i]
                 target = targets[i]
                 (h, y) = self.propagate(x)
@@ -180,4 +144,6 @@ class MultiplayerPerceptron:
                         pending += 1
                 total_error += energy
 
-            print("Runde " + str(iteration) + " - Ausstehend: " + str(pending) + " Fehler: " + str(total_error))
+            convergence = (count - pending)/count
+            avg_error = total_error/count
+            print("Runde {0} - Konvergenz: {1:.0%} - Fehler (Mittel): {2}".format(iteration, convergence, avg_error))

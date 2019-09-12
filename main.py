@@ -1,20 +1,16 @@
-# Ernesto Elsaesser - Matrikelnummer 2016424 - fuer Python 3
+# TM40507 Pruefungsleistung - Matrikelnummer 2016424
+# (c) Ernesto Elsaesser
 
-import nn
+import classifier
 
-classifier = nn.WeightClassifier()
+wc = classifier.WeightClassifier()
 
-answer = input("Vortrainierte Gewichte laden (j/n)? ")
-if answer == "j":
-    classifier.load_weights()
-else:
-    train_filename = input("Pfad zu den Trainingsdaten (CSV): ")
-    classifier.load_data(train_filename)
-    sample_count = int(input("Zahl zu nutzender Trainingsbeispiele: "))
-    classifier.train(to_index = sample_count)
+train_filename = input("Pfad zu den Trainingsdaten (CSV): ")
+wc.load_data(train_filename)
+wc.train()
 
 test_filename = input("Pfad zu den Testdaten (CSV): ")
-classifier.load_data(test_filename)
+wc.load_data(test_filename)
 answer = input("Klassen ausgeben (j/n)? ")
-print_classes = answer == "j"
-classifier.test(print_classes = print_classes)
+verbose = answer == "j"
+wc.test(verbose = verbose)
