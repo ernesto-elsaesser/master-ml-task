@@ -18,6 +18,7 @@ class WeightClassifier:
     def load_data(self, filename = "data_a_2_2016242.csv"):
         self.xs = np.zeros((0,6))
         self.targets = np.zeros((0,self.output_neurons))
+        self.raw = []
 
         print("Lese CSV-Datei ...")
         with open(filename, newline='') as file:
@@ -42,6 +43,8 @@ class WeightClassifier:
                     underweight = 1 if row[5] == self.classes[0] else 0
                     overweight = 1 if row[5] == self.classes[2] else 0
                     self.targets = np.append(self.targets, [[underweight, overweight]], 0)
+                
+                self.raw.append(" | ".join(row))
 
         self.sample_count = self.targets.shape[0]
         print(str(self.sample_count) + " Beispiele aus Datei " + filename + " ausgelesen.")
@@ -58,7 +61,7 @@ class WeightClassifier:
         end = np.datetime64('now')
         print("Trainingsdauer: " + str(end - start))
 
-    def test(self, from_index = 0, to_index = 10000, print_classes = False):
+    def test(self, from_index = 0, to_index = 10000, print_all = False, print_errors = False):
         test_range = range(max(from_index, 0), min(to_index, self.sample_count))
         count = len(test_range)
         correct_count = 0
@@ -70,8 +73,9 @@ class WeightClassifier:
             correct = expected_class == predicted_class
             if correct:
                 correct_count += 1
-            if print_classes:
-                print(str(i) + ": " + predicted_class + (" [richtig]" if correct else " [falsch]"))
+            if print_all or (print_errors and not correct):
+                print(str(i) + ": " + self.raw[i] +  " -> " + self.classes[predicted_class] 
+                    + (" [richtig]" if correct else " [falsch]"))
 
         accuracy = correct_count / count
         print("Test-Ergebnis: {0}/{1} richtig ({2:.0%})".format(correct_count, count, accuracy))
@@ -87,10 +91,10 @@ class WeightClassifier:
                 return 2 if y[1] > y[0] else 0
             return 1
 
-    def sk(self, max_iter = 5000, activation = "relu"):
+    def sk(self, max_iter = 5000, activation = "relu", hidden_layer_sizes = 6, split = 0.30):
         # https://scikit-learn.org/stable/modules/neural_networks_supervised.html
-        mlp = MLPClassifier(hidden_layer_sizes=(self.hidden_neurons), activation=activation, solver='sgd', max_iter=max_iter)
-        xs_train, xs_test, targets_train, targets_test = train_test_split(self.xs, self.targets, test_size=0.30)
+        mlp = MLPClassifier(hidden_layer_sizes=hidden_layer_sizes, activation=activation, solver='sgd', max_iter=max_iter)
+        xs_train, xs_test, targets_train, targets_test = train_test_split(self.xs, self.targets, test_size=split)
         mlp.fit(xs_train, targets_train)
         targets_predicted = mlp.predict(xs_test)
         print(classification_report(targets_test, targets_predicted))

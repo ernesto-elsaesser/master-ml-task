@@ -8,8 +8,8 @@ learning_rate = float(sys.argv[4])
 n = nn.WeightClassifier(hidden_neurons, output_neurons, epsilon, learning_rate)
 n.load_data()
 #n.sk(5000)
-n.train(0,7000)
-n.test(7000,10000)
+n.train(0,9000)
+n.test(9000,9100,False,True)
 
 # ------- 0 - 50 ----------
 
