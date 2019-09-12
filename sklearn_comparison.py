@@ -1,11 +1,9 @@
-# TM40507 Pruefungsleistung - Matrikelnummer 2016424
-# (c) Ernesto Elsaesser
+# TM40507 Pruefungsleistung von Ernesto Elsaesser (Matrikelnummer 2016424)
 
 import classifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import classification_report
-   
-# https://scikit-learn.org/stable/modules/neural_networks_supervised.html
+# documentation: https://scikit-learn.org/stable/modules/neural_networks_supervised.html
 
 db = classifier.WeightClassifier() # reuse CSV import
 db.load_data()

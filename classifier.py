@@ -1,5 +1,4 @@
-# TM40507 Pruefungsleistung - Matrikelnummer 2016424
-# (c) Ernesto Elsaesser
+# TM40507 Pruefungsleistung von Ernesto Elsaesser (Matrikelnummer 2016424)
 
 import csv
 import numpy as np
