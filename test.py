@@ -4,10 +4,12 @@ import sys
 hidden_neurons = int(sys.argv[1])
 output_neurons = int(sys.argv[2])
 epsilon = float(sys.argv[3])
-n = nn.WeightClassifier(hidden_neurons, epsilon, output_neurons)
+learning_rate = float(sys.argv[4])
+n = nn.WeightClassifier(hidden_neurons, output_neurons, epsilon, learning_rate)
 n.load_data()
-n.train(0,5000)
-n.test(5000,10000)
+#n.sk(5000)
+n.train(0,7000)
+n.test(7000,10000)
 
 # ------- 0 - 50 ----------
 

@@ -8,10 +8,10 @@ from sklearn.metrics import classification_report
 
 class WeightClassifier:
 
-    def __init__(self, hidden_neurons = 6, epsilon = 0.23, output_neurons = 2):
+    def __init__(self, hidden_neurons = 6, output_neurons = 2, epsilon = 0.2, learning_rate = 0.3):
         self.output_neurons = max(min(output_neurons, 3), 1)
         self.hidden_neurons = hidden_neurons
-        self.net = MultiplayerPerceptron(6, hidden_neurons, output_neurons, epsilon)
+        self.net = MultiplayerPerceptron(6, hidden_neurons, output_neurons, epsilon, learning_rate)
         self.sample_count = 0
         self.classes = ["Untergewicht", "Normalgewicht", "Uebergewicht"]
     
@@ -42,14 +42,6 @@ class WeightClassifier:
                     underweight = 1 if row[5] == self.classes[0] else 0
                     overweight = 1 if row[5] == self.classes[2] else 0
                     self.targets = np.append(self.targets, [[underweight, overweight]], 0)
-
-                if self.output_neurons == 1:
-                    target = 0.5
-                    if row[5] == self.classes[0]:
-                        target = 0
-                    if row[5] == self.classes[2]:
-                        target = 1
-                    self.targets = np.append(self.targets, [[target]], 0)
 
         self.sample_count = self.targets.shape[0]
         print(str(self.sample_count) + " Beispiele aus Datei " + filename + " ausgelesen.")
@@ -86,38 +78,39 @@ class WeightClassifier:
 
     def classify(self, y):
         if self.output_neurons == 3:
-            if (y[0] > 0.5):
-                return self.classes[0]
-            if (y[1] > 0.5):
-                return self.classes[1]
-            if (y[2] > 0.5):
-                return self.classes[2]
-            return "ERROR"
+                return np.argmax(y)
 
         if self.output_neurons == 2:
-            if (y[0] > 0.5):
-                return self.classes[0]
-            if (y[1] > 0.5):
-                return self.classes[2]
-            return self.classes[1]
+            if y[0] > (1/2):
+                return 0 if y[0] > y[1] else 2
+            if y[1] > (1/2):
+                return 2 if y[1] > y[0] else 0
+            return 1
 
-        if self.output_neurons == 1:
-            if (y[0] < 0.25):
-                return self.classes[0]
-            if (y[0] > 0.75):
-                return self.classes[2]
-            return self.classes[1]
-
-    def sk(self, max_iter = 5000):
-        mlp = MLPClassifier(hidden_layer_sizes=(self.hidden_neurons), activation='relu', solver='adam', max_iter=max_iter)
+    def sk(self, max_iter = 5000, activation = "relu"):
+        # https://scikit-learn.org/stable/modules/neural_networks_supervised.html
+        mlp = MLPClassifier(hidden_layer_sizes=(self.hidden_neurons), activation=activation, solver='sgd', max_iter=max_iter)
         xs_train, xs_test, targets_train, targets_test = train_test_split(self.xs, self.targets, test_size=0.30)
         mlp.fit(xs_train, targets_train)
         targets_predicted = mlp.predict(xs_test)
         print(classification_report(targets_test, targets_predicted))
 
+        count = len(xs_test)
+        correct_count = 0
+        for i in range(0,count):
+            expected_class = self.classify(targets_test[i])
+            pred = mlp.predict([xs_test[i]])
+            predicted_class = self.classify(pred[0])
+            correct = expected_class == predicted_class
+            if correct:
+                correct_count += 1
+
+        accuracy = correct_count / count
+        print("Test-Ergebnis: {0}/{1} richtig ({2:.0%})".format(correct_count, count, accuracy))
+
 class MultiplayerPerceptron:
 
-    def __init__(self, input_dim, hidden_dim, output_dim, epsilon):
+    def __init__(self, input_dim, hidden_dim, output_dim, epsilon, learning_rate):
         self.INPUT = 0
         self.HIDDEN = 1
         self.OUTPUT = 2
@@ -126,6 +119,7 @@ class MultiplayerPerceptron:
         weights_from_hidden = 2 * np.random.random((hidden_dim + 1, output_dim)) - 1
         self.weights_from = [weights_from_in, weights_from_hidden]
         self.epsilon = epsilon
+        self.learning_rate = learning_rate
 
     @staticmethod
     def sigmoid(x):
@@ -148,32 +142,26 @@ class MultiplayerPerceptron:
     def overall_error(self, y, target):
         return np.sum(np.square(target - y)) / 2
 
-    def adjust_weights(self, layer, levels_left, levels_right, error, learning_rate):
+    def adjust_weights(self, layer, levels_left, levels_right, error):
         scaled_error = error * self.sigmoid_deriv(levels_right)
-        delta = learning_rate * np.outer(levels_left, scaled_error)
+        delta = self.learning_rate * np.outer(levels_left, scaled_error)
         delta_ext = np.append(delta, np.zeros((1, error.shape[0])), 0)
         self.weights_from[layer] += delta_ext
         return scaled_error # reuse for next layer
 
-    def backpropagate(self, x, h, y, target, learning_rate):
+    def backpropagate(self, x, h, y, target):
         error = target - y
-        scaled_error = self.adjust_weights(self.HIDDEN, h, y, error, learning_rate)
+        scaled_error = self.adjust_weights(self.HIDDEN, h, y, error)
         weights_from_hidden = self.weights_from[self.HIDDEN]
         hidden_error = scaled_error.dot(weights_from_hidden[:-1].T)
-        self.adjust_weights(self.INPUT, x, h, hidden_error, learning_rate)
+        self.adjust_weights(self.INPUT, x, h, hidden_error)
 
-    def train(self, xs, targets, sample_range):
+    def train(self, xs, targets, sample_range, max_iter = 10):
         count = len(sample_range)
-        learning_rate = 1.0
-        round = 0
-        pending = 1
-        while (pending > 0):
-            round += 1
-
-            # shuffle example order and decrease learning rate every 10 rounds
-            if round % 10 == 0:
-                sample_range = random.sample(list(sample_range), count)
-                learning_rate *= 0.66
+        iteration = 0
+        while (iteration < max_iter):
+            iteration += 1
+            #sample_range = random.sample(list(sample_range), count)
 
             for i in sample_range:
                 x = xs[i]
@@ -181,17 +169,17 @@ class MultiplayerPerceptron:
                 (h, y) = self.propagate(x)
                 overall_error = self.overall_error(y, target)
                 while overall_error > self.epsilon:
-                    self.backpropagate(x, h, y, target, learning_rate)
+                    self.backpropagate(x, h, y, target)
                     (h, y) = self.propagate(x)
                     overall_error = self.overall_error(y, target)
 
-            pending = count
+            pending = 0
             total_error = 0
             for i in sample_range:
                 (_, y) = self.propagate(xs[i])
                 overall_error = self.overall_error(y, targets[i])
-                if (overall_error < self.epsilon):
-                    pending -= 1
+                if (overall_error > self.epsilon):
+                    pending += 1
                 total_error += overall_error
 
-            print("Runde " + str(round) + " - Ausstehend: " + str(pending) + " Fehler: " + str(total_error))
+            print("Runde " + str(iteration) + " - Ausstehend: " + str(pending) + " Fehler: " + str(total_error/count))
