@@ -6,7 +6,7 @@ import numpy as np
 class WeightClassifier:
 
     def __init__(self, hidden_neurons = 6, epsilon = 0.1, learning_rate = 0.3):
-        self.net = MultiplayerPerceptron(6, hidden_neurons, 2, epsilon, learning_rate)
+        self.net = MultilayerPerceptron(6, hidden_neurons, 2, epsilon, learning_rate)
         self.classes = ["Untergewicht", "Normalgewicht", "Uebergewicht"]
     
     def load_data(self, filename = "data_a_2_2016242.csv"):
@@ -73,7 +73,7 @@ class WeightClassifier:
                 return 2
             return 1
 
-class MultiplayerPerceptron:
+class MultilayerPerceptron:
 
     def __init__(self, input_dim, hidden_dim, output_dim, epsilon, learning_rate):
         self.INPUT = 0
