@@ -7,9 +7,9 @@ epsilon = float(sys.argv[3])
 learning_rate = float(sys.argv[4])
 n = nn.WeightClassifier(hidden_neurons, output_neurons, epsilon, learning_rate)
 n.load_data()
-#n.sk(5000)
+#n.sk(max_iter = 5000, activation = "relu", hidden_layer_sizes = (12,12))
 n.train(0,9000)
-n.test(9000,9100,False,True)
+n.test(9000,10000,False,False)
 
 # ------- 0 - 50 ----------
 

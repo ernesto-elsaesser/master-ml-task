@@ -2,7 +2,6 @@ import csv
 import random
 import numpy as np
 
-from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import classification_report
 
@@ -57,7 +56,7 @@ class WeightClassifier:
         start = np.datetime64('now')
         train_range = range(max(from_index, 0), min(to_index, self.sample_count))
         print("Trainiere mit " + str(len(train_range)) + " Beispielen ...")
-        self.net.train(self.xs, self.targets, train_range)
+        self.net.train(self.xs, self.targets, train_range, max_iterations = 12)
         end = np.datetime64('now')
         print("Trainingsdauer: " + str(end - start))
 
@@ -91,26 +90,27 @@ class WeightClassifier:
                 return 2 if y[1] > y[0] else 0
             return 1
 
-    def sk(self, max_iter = 5000, activation = "relu", hidden_layer_sizes = 6, split = 0.30):
+    def sk(self, max_iter = 5000, activation = "relu", hidden_layer_sizes = 6):
         # https://scikit-learn.org/stable/modules/neural_networks_supervised.html
         mlp = MLPClassifier(hidden_layer_sizes=hidden_layer_sizes, activation=activation, solver='sgd', max_iter=max_iter)
-        xs_train, xs_test, targets_train, targets_test = train_test_split(self.xs, self.targets, test_size=split)
-        mlp.fit(xs_train, targets_train)
-        targets_predicted = mlp.predict(xs_test)
-        print(classification_report(targets_test, targets_predicted))
+        mlp.fit(self.xs[0:7000], self.targets[0:7000])
+        targets_predicted = mlp.predict(self.xs[7000:10000])
+        print(classification_report(self.targets[7000:10000], targets_predicted))
 
-        count = len(xs_test)
         correct_count = 0
-        for i in range(0,count):
-            expected_class = self.classify(targets_test[i])
-            pred = mlp.predict([xs_test[i]])
+        for i in range(7000,10000):
+            expected_class = self.classify(self.targets[i])
+            pred = mlp.predict([self.xs[i]])
             predicted_class = self.classify(pred[0])
             correct = expected_class == predicted_class
             if correct:
                 correct_count += 1
+            elif i < 8000:
+                print(str(i) + ": " + self.raw[i] +  " -> " + str(pred[0]))
 
-        accuracy = correct_count / count
-        print("Test-Ergebnis: {0}/{1} richtig ({2:.0%})".format(correct_count, count, accuracy))
+
+        accuracy = correct_count / 3000
+        print("Test-Ergebnis: {0}/3000 richtig ({1:.0%})".format(correct_count, accuracy))
 
 class MultiplayerPerceptron:
 
@@ -143,7 +143,7 @@ class MultiplayerPerceptron:
         y = self.propagate_layer(self.HIDDEN, h)
         return (h, y)
 
-    def overall_error(self, y, target):
+    def energy(self, y, target):
         return np.sum(np.square(target - y)) / 2
 
     def adjust_weights(self, layer, levels_left, levels_right, error):
@@ -160,30 +160,24 @@ class MultiplayerPerceptron:
         hidden_error = scaled_error.dot(weights_from_hidden[:-1].T)
         self.adjust_weights(self.INPUT, x, h, hidden_error)
 
-    def train(self, xs, targets, sample_range, max_iter = 10):
-        count = len(sample_range)
+    def train(self, xs, targets, sample_range, max_iterations):
         iteration = 0
-        while (iteration < max_iter):
+        pending = 1
+        while pending > 0 and iteration < max_iterations:
             iteration += 1
-            #sample_range = random.sample(list(sample_range), count)
-
+            pending = 0
+            total_error = 0
             for i in sample_range:
                 x = xs[i]
                 target = targets[i]
                 (h, y) = self.propagate(x)
-                overall_error = self.overall_error(y, target)
-                while overall_error > self.epsilon:
+                energy = self.energy(y, target)
+                if energy > self.epsilon:
                     self.backpropagate(x, h, y, target)
-                    (h, y) = self.propagate(x)
-                    overall_error = self.overall_error(y, target)
+                    (_, y) = self.propagate(x)
+                    energy = self.energy(y, target)
+                    if (energy > self.epsilon):
+                        pending += 1
+                total_error += energy
 
-            pending = 0
-            total_error = 0
-            for i in sample_range:
-                (_, y) = self.propagate(xs[i])
-                overall_error = self.overall_error(y, targets[i])
-                if (overall_error > self.epsilon):
-                    pending += 1
-                total_error += overall_error
-
-            print("Runde " + str(iteration) + " - Ausstehend: " + str(pending) + " Fehler: " + str(total_error/count))
+            print("Runde " + str(iteration) + " - Ausstehend: " + str(pending) + " Fehler: " + str(total_error))
