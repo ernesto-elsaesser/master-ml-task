@@ -10,6 +10,5 @@ wc.train()
 
 test_filename = input("Pfad zu den Testdaten (CSV): ")
 wc.load_data(test_filename)
-answer = input("Klassen ausgeben (j/n)? ")
-verbose = answer == "j"
+verbose = input("Klassen ausgeben (j/n)? ") == "j"
 wc.test(verbose = verbose)
